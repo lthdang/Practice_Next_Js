@@ -4,7 +4,8 @@ const nextConfig = {
     // Update these to the locales you need
     locales: ["en", "vi", "ja"],
     defaultLocale: "en",
-    localeDetection: true,
+    // Set to false to avoid runtime error about invalid literal value
+    localeDetection: false,
   },
 };
 
