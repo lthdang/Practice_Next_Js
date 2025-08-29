@@ -66,8 +66,12 @@ export default function Admin() {
         <aside className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
           <div className="sidebar-header">
             <div className="logo">
-              <span className="logo-icon">🎓</span>
-              {sidebarOpen && <span className="logo-text">EduAdmin</span>}
+              {sidebarOpen && (
+                <>
+                  <span className="logo-icon">🎓</span>
+                  <span className="logo-text">EduAdmin</span>
+                </>
+              )}
             </div>
             <button
               className="sidebar-toggle"
