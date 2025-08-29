@@ -1,6 +1,7 @@
 import Head from "next/head";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { RoleEnum } from "../utils/enum/role_emun";
 
 export default function Admin() {
   const router = useRouter();
@@ -102,7 +103,9 @@ export default function Admin() {
                   <div className="user-name">
                     {user.full_name || user.username}
                   </div>
-                  <div className="user-role">{user.role.role_name}</div>
+                  <div className="user-role">
+                    {RoleEnum[user.role.role_name]}
+                  </div>
                 </div>
               )}
             </div>
@@ -118,7 +121,6 @@ export default function Admin() {
 
         {/* Main Content */}
         <main className="main-content">
-          /* Top Bar */
           <header className="top-bar">
             <div className="page-title">
               <h1>
