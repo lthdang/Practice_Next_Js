@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:15
+    container_name: language_learning_db
+    restart: always
+    environment:
+      POSTGRES_USER: lang_user
+      POSTGRES_PASSWORD: strongpassword123
+      POSTGRES_DB: language_learning
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

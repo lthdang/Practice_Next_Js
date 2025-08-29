@@ -1,9 +1,22 @@
-// tailwind.config.js
+/* filepath: /home/haidang/Works/NextJs/nextjs-blog/tailwind.config.js */
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
-    // For the best performance and to avoid false positives,
-    // be as specific as possible with your content configuration.
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: "#f0f9ff",
+          500: "#3b82f6",
+          600: "#2563eb",
+          700: "#1d4ed8",
+        },
+      },
+    },
+  },
+  plugins: [],
 };
