@@ -29,7 +29,7 @@ npx prisma migrate dev --name init
 
 ## Step 3: Test
 
-- Run command: npx prisma studio to view database in browser
+- Run command: `npx prisma studio` to view database in browser
 - Check if the tables have been created by opening a terminal and connecting to the database using the command:
 
 ```
@@ -42,3 +42,8 @@ docker exec -it language_learning_db psql -U lang_user -d language_learning
 # inside psql, check tables:
 \dt
 ```
+
+## Format code:
+
+- Check for issues: npm run lint
+- Auto-fix issues: npm run lint:fix
