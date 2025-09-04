@@ -1,13 +1,107 @@
 import Head from "next/head";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 import { RoleEnum } from "../utils/enum/role_emun";
+
+// MUI Imports
+import {
+  AppBar,
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Collapse,
+  CssBaseline,
+  Divider,
+  Drawer,
+  Grid,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Toolbar,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
+
+// MUI Icons
+import {
+  AccountCircle,
+  Add,
+  Analytics,
+  ChevronLeft,
+  ChevronRight,
+  Construction,
+  Dashboard,
+  Delete,
+  Edit,
+  Logout,
+  Notifications,
+  People,
+  School,
+  Settings,
+  TrendingUp,
+  Visibility,
+} from "@mui/icons-material";
+
+// MUI Theme
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#4f46e5", // Indigo
+      light: "#7c3aed", // Purple
+    },
+    secondary: {
+      main: "#10b981", // Green
+    },
+    background: {
+      default: "#f8fafc",
+    },
+  },
+  components: {
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+          color: "white",
+        },
+      },
+    },
+  },
+});
+
+const drawerWidth = 280;
+const collapsedDrawerWidth = 64;
 
 export default function Admin() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("md"));
 
   useEffect(() => {
     // Get user data from localStorage
@@ -24,6 +118,7 @@ export default function Admin() {
     }
 
     setUser(parsedUser);
+    setLoading(false);
   }, [router]);
 
   const handleLogout = () => {
@@ -31,713 +126,544 @@ export default function Admin() {
     router.push("/login");
   };
 
-  if (!user) {
-    return <div className="loading">Loading...</div>;
+  const handleDrawerToggle = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  if (loading || !user) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+        bgcolor="background.default"
+      >
+        <Box display="flex" alignItems="center" gap={2}>
+          <CircularProgress color="primary" />
+          <Typography variant="h6" color="text.secondary">
+            Loading...
+          </Typography>
+        </Box>
+      </Box>
+    );
   }
 
   const menuItems = [
-    { id: "dashboard", name: "Dashboard", icon: "📊" },
-    { id: "users", name: "Manage Users", icon: "👥" },
-    { id: "courses", name: "Manage Courses", icon: "📚" },
-    { id: "analytics", name: "Analytics", icon: "📈" },
-    { id: "settings", name: "Settings", icon: "⚙️" },
+    { id: "dashboard", name: "Dashboard", icon: <Dashboard /> },
+    { id: "users", name: "Manage Users", icon: <People /> },
+    { id: "courses", name: "Manage Courses", icon: <School /> },
+    { id: "analytics", name: "Analytics", icon: <Analytics /> },
+    { id: "settings", name: "Settings", icon: <Settings /> },
   ];
 
   const dashboardCards = [
-    { title: "Total Users", value: "1,234", change: "+12%", color: "#4CAF50" },
-    { title: "Total Courses", value: "89", change: "+5%", color: "#2196F3" },
+    {
+      title: "Total Users",
+      value: "1,234",
+      change: "+12%",
+      color: "success",
+      icon: <People />,
+    },
+    {
+      title: "Total Courses",
+      value: "89",
+      change: "+5%",
+      color: "primary",
+      icon: <School />,
+    },
     {
       title: "Active Enrollments",
       value: "456",
       change: "+8%",
-      color: "#FF9800",
+      color: "warning",
+      icon: <TrendingUp />,
     },
-    { title: "Revenue", value: "$12,345", change: "+15%", color: "#9C27B0" },
+    {
+      title: "Revenue",
+      value: "$12,345",
+      change: "+15%",
+      color: "secondary",
+      icon: <Analytics />,
+    },
   ];
+
+  const currentDrawerWidth = sidebarOpen ? drawerWidth : collapsedDrawerWidth;
+
   return (
-    <>
+    <ThemeProvider theme={theme}>
       <Head>
         <title>Admin Dashboard - Language Learning Platform</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
-      <div className="admin-container">
-        {/* Sidebar */}
-        <aside className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
-          <div className="sidebar-header">
-            <div className="logo">
-              {sidebarOpen && (
-                <>
-                  <span className="logo-icon">🎓</span>
-                  <span className="logo-text">EduAdmin</span>
-                </>
-              )}
-            </div>
-            <button
-              className="sidebar-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              ☰
-            </button>
-          </div>
+      <Box sx={{ display: "flex" }}>
+        <CssBaseline />
 
-          <nav className="sidebar-nav">
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                className={`nav-item ${
-                  activeSection === item.id ? "active" : ""
-                }`}
-                onClick={() => setActiveSection(item.id)}
-                title={!sidebarOpen ? item.name : ""}
+        {/* App Bar */}
+        <AppBar
+          position="fixed"
+          sx={{
+            width: { md: `calc(100% - ${currentDrawerWidth}px)` },
+            ml: { md: `${currentDrawerWidth}px` },
+            bgcolor: "white",
+            color: "text.primary",
+            boxShadow: 1,
+          }}
+        >
+          <Toolbar>
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="h5" fontWeight="bold" color="text.primary">
+                {menuItems.find((item) => item.id === activeSection)?.name || "Dashboard"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Welcome back, {user.full_name || user.username}!
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <IconButton color="inherit">
+                <Badge badgeContent={4} color="error">
+                  <Notifications />
+                </Badge>
+              </IconButton>
+
+              <IconButton
+                size="large"
+                aria-label="account of current user"
+                aria-controls="menu-appbar"
+                aria-haspopup="true"
+                onClick={handleMenu}
+                color="inherit"
               >
-                <span className="nav-icon">{item.icon}</span>
-                {sidebarOpen && <span className="nav-text">{item.name}</span>}
-              </button>
-            ))}
-          </nav>
+                <Avatar
+                  alt={user.full_name || user.username}
+                  src={user.avatar_url || "/default-avatar.png"}
+                  sx={{ width: 40, height: 40 }}
+                >
+                  {(user.full_name || user.username).charAt(0).toUpperCase()}
+                </Avatar>
+              </IconButton>
 
-          <div className="sidebar-footer">
-            <div className="user-info">
-              <div className="user-avatar">
+              <Menu
+                id="menu-appbar"
+                anchorEl={anchorEl}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "right",
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+              >
+                <MenuItem onClick={handleClose}>
+                  <AccountCircle sx={{ mr: 1 }} />
+                  Profile
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={handleLogout}>
+                  <Logout sx={{ mr: 1 }} />
+                  Logout
+                </MenuItem>
+              </Menu>
+            </Box>
+          </Toolbar>
+        </AppBar>
+
+        {/* Sidebar */}
+        <Drawer
+          variant={isMobile ? "temporary" : "permanent"}
+          open={isMobile ? sidebarOpen : true}
+          onClose={handleDrawerToggle}
+          sx={{
+            width: currentDrawerWidth,
+            flexShrink: 0,
+            "& .MuiDrawer-paper": {
+              width: currentDrawerWidth,
+              boxSizing: "border-box",
+              transition: "width 0.3s ease",
+            },
+          }}
+        >
+          {/* Sidebar Header */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              p: 2,
+              borderBottom: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <Collapse in={sidebarOpen} orientation="horizontal">
+              <Box display="flex" alignItems="center" gap={1}>
+                <Typography variant="h4">🎓</Typography>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    EduAdmin
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    Learning Platform
+                  </Typography>
+                </Box>
+              </Box>
+            </Collapse>
+
+            {!isMobile && (
+              <IconButton onClick={handleDrawerToggle} sx={{ color: "white", ml: "auto" }}>
+                {sidebarOpen ? <ChevronLeft /> : <ChevronRight />}
+              </IconButton>
+            )}
+          </Box>
+
+          {/* Navigation */}
+          <List sx={{ flexGrow: 1, py: 2 }}>
+            {menuItems.map((item) => (
+              <Tooltip key={item.id} title={!sidebarOpen ? item.name : ""} placement="right">
+                <ListItem disablePadding>
+                  <ListItemButton
+                    selected={activeSection === item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    sx={{
+                      mx: 1,
+                      my: 0.5,
+                      borderRadius: 2,
+                      "&.Mui-selected": {
+                        bgcolor: "rgba(255,255,255,0.2)",
+                        "&:hover": {
+                          bgcolor: "rgba(255,255,255,0.3)",
+                        },
+                      },
+                      "&:hover": {
+                        bgcolor: "rgba(255,255,255,0.1)",
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: "white", minWidth: 40 }}>{item.icon}</ListItemIcon>
+                    <Collapse in={sidebarOpen} orientation="horizontal">
+                      <ListItemText primary={item.name} sx={{ ml: 1, color: "white" }} />
+                    </Collapse>
+                  </ListItemButton>
+                </ListItem>
+              </Tooltip>
+            ))}
+          </List>
+
+          {/* User Info */}
+          <Box
+            sx={{
+              p: 2,
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <Box display="flex" alignItems="center" gap={2}>
+              <Avatar
+                sx={{
+                  bgcolor: "rgba(255,255,255,0.2)",
+                  color: "white",
+                  width: 40,
+                  height: 40,
+                }}
+              >
                 {(user.full_name || user.username).charAt(0).toUpperCase()}
-              </div>
-              {sidebarOpen && (
-                <div className="user-details">
-                  <div className="user-name">
+              </Avatar>
+              <Collapse in={sidebarOpen} orientation="horizontal">
+                <Box>
+                  <Typography variant="body2" fontWeight="bold">
                     {user.full_name || user.username}
-                  </div>
-                  <div className="user-role">
-                    {RoleEnum[user.role.role_name]}
-                  </div>
-                </div>
-              )}
-            </div>
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-              title={!sidebarOpen ? "Logout" : ""}
-            >
-              🚪 {sidebarOpen && "Logout"}
-            </button>
-          </div>
-        </aside>
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    {RoleEnum[user.role.role_name] || user.role.role_name}
+                  </Typography>
+                </Box>
+              </Collapse>
+            </Box>
+          </Box>
+        </Drawer>
 
         {/* Main Content */}
-        <main className="main-content">
-          <header className="top-bar">
-            <div className="page-title">
-              <h1>
-                {menuItems.find((item) => item.id === activeSection)?.name ||
-                  "Dashboard"}
-              </h1>
-              <p>Welcome back, {user.full_name || user.username}!</p>
-            </div>
-            <div className="top-bar-actions">
-              <button className="notification-btn">🔔</button>
-              <div className="user-menu">
-                <img
-                  src={user.avatar_url || "/default-avatar.png"}
-                  alt="User"
-                  className="user-avatar-small"
-                  style={{ width: "40px", height: "40px", borderRadius: "50%" }}
-                />
-              </div>
-            </div>
-          </header>
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            width: { md: `calc(100% - ${currentDrawerWidth}px)` },
+            bgcolor: "background.default",
+            minHeight: "100vh",
+          }}
+        >
+          <Toolbar />
+
           {/* Dashboard Content */}
-          <div className="content-area">
-            {activeSection === "dashboard" && (
-              <>
-                {/* Stats Cards */}
-                <div className="stats-grid">
-                  {dashboardCards.map((card, index) => (
-                    <div key={index} className="stat-card">
-                      <div className="stat-header">
-                        <h3>{card.title}</h3>
-                        <span className="stat-change positive">
-                          {card.change}
-                        </span>
-                      </div>
-                      <div className="stat-value" style={{ color: card.color }}>
-                        {card.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {activeSection === "dashboard" && (
+            <Box>
+              {/* Stats Cards */}
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                {dashboardCards.map((card, index) => (
+                  <Grid item xs={12} sm={6} md={3} key={index}>
+                    <Card
+                      sx={{
+                        height: "100%",
+                        transition: "transform 0.2s, box-shadow 0.2s",
+                        "&:hover": {
+                          transform: "translateY(-4px)",
+                          boxShadow: 4,
+                        },
+                      }}
+                    >
+                      <CardContent>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="flex-start"
+                          mb={2}
+                        >
+                          <Typography color="text.secondary" variant="body2">
+                            {card.title}
+                          </Typography>
+                          <Chip
+                            label={card.change}
+                            color={card.color}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Box>
+                        <Box display="flex" alignItems="center" gap={2}>
+                          <Typography variant="h4" fontWeight="bold">
+                            {card.value}
+                          </Typography>
+                          <Box color={`${card.color}.main`}>{card.icon}</Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
 
-                {/* Charts Section */}
-                <div className="charts-section">
-                  <div className="chart-card">
-                    <h3>User Growth</h3>
-                    <div className="chart-placeholder">
-                      📊 Chart placeholder - User growth over time
-                    </div>
-                  </div>
-                  <div className="chart-card">
-                    <h3>Course Enrollments</h3>
-                    <div className="chart-placeholder">
-                      📈 Chart placeholder - Course enrollment trends
-                    </div>
-                  </div>
-                </div>
+              {/* Charts Section */}
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} lg={6}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        User Growth
+                      </Typography>
+                      <Box
+                        height={300}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        bgcolor="grey.100"
+                        borderRadius={2}
+                      >
+                        <Typography color="text.secondary">
+                          📊 Chart placeholder - User growth over time
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} lg={6}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Course Enrollments
+                      </Typography>
+                      <Box
+                        height={300}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        bgcolor="grey.100"
+                        borderRadius={2}
+                      >
+                        <Typography color="text.secondary">
+                          📈 Chart placeholder - Course enrollment trends
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
 
-                {/* Recent Activity */}
-                <div className="activity-section">
-                  <h3>Recent Activity</h3>
-                  <div className="activity-list">
-                    <div className="activity-item">
-                      <span className="activity-icon">👤</span>
-                      <span>New user registered: john.doe@example.com</span>
-                      <span className="activity-time">2 hours ago</span>
-                    </div>
-                    <div className="activity-item">
-                      <span className="activity-icon">📚</span>
-                      <span>New course created: Advanced JavaScript</span>
-                      <span className="activity-time">5 hours ago</span>
-                    </div>
-                    <div className="activity-item">
-                      <span className="activity-icon">💰</span>
-                      <span>Payment received: $99.99</span>
-                      <span className="activity-time">1 day ago</span>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+              {/* Recent Activity */}
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Recent Activity
+                  </Typography>
+                  <List>
+                    {[
+                      {
+                        icon: "👤",
+                        text: "New user registered: john.doe@example.com",
+                        time: "2 hours ago",
+                      },
+                      {
+                        icon: "📚",
+                        text: "New course created: Advanced JavaScript",
+                        time: "5 hours ago",
+                      },
+                      {
+                        icon: "💰",
+                        text: "Payment received: $99.99",
+                        time: "1 day ago",
+                      },
+                    ].map((activity, index) => (
+                      <ListItem key={index} divider={index < 2} sx={{ px: 0 }}>
+                        <ListItemIcon>
+                          <Avatar sx={{ width: 40, height: 40 }}>{activity.icon}</Avatar>
+                        </ListItemIcon>
+                        <ListItemText primary={activity.text} secondary={activity.time} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </CardContent>
+              </Card>
+            </Box>
+          )}
 
-            {activeSection === "users" && (
-              <div className="management-section">
-                <div className="section-header">
-                  <h2>User Management</h2>
-                  <button className="btn-primary">+ Add New User</button>
-                </div>
-                <div className="table-container">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>John Doe</td>
-                        <td>john@example.com</td>
-                        <td>
-                          <span className="badge student">Student</span>
-                        </td>
-                        <td>
-                          <span className="status active">Active</span>
-                        </td>
-                        <td>
-                          <button className="btn-sm">Edit</button>
-                          <button className="btn-sm danger">Delete</button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+          {/* Users Management */}
+          {activeSection === "users" && (
+            <Card>
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                  <Typography variant="h5" fontWeight="bold">
+                    User Management
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    sx={{
+                      background: "linear-gradient(45deg, #4f46e5 30%, #7c3aed 90%)",
+                    }}
+                  >
+                    Add New User
+                  </Button>
+                </Box>
 
-            {activeSection === "courses" && (
-              <div className="management-section">
-                <div className="section-header">
-                  <h2>Course Management</h2>
-                  <button className="btn-primary">+ Create Course</button>
-                </div>
-                <div className="course-grid">
-                  <div className="course-card">
-                    <div className="course-thumbnail">📚</div>
-                    <h4>JavaScript Fundamentals</h4>
-                    <p>89 enrolled students</p>
-                    <div className="course-actions">
-                      <button className="btn-sm">Edit</button>
-                      <button className="btn-sm">View</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Email</TableCell>
+                        <TableCell>Role</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>John Doe</TableCell>
+                        <TableCell>john@example.com</TableCell>
+                        <TableCell>
+                          <Chip label="Student" color="primary" size="small" />
+                        </TableCell>
+                        <TableCell>
+                          <Chip label="Active" color="success" size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton size="small" color="primary">
+                            <Edit />
+                          </IconButton>
+                          <IconButton size="small" color="error">
+                            <Delete />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          )}
 
-            {/* Other sections placeholder */}
-            {["analytics", "settings"].includes(activeSection) && (
-              <div className="placeholder-section">
-                <h2>
+          {/* Course Management */}
+          {activeSection === "courses" && (
+            <Card>
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                  <Typography variant="h5" fontWeight="bold">
+                    Course Management
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    sx={{
+                      background: "linear-gradient(45deg, #4f46e5 30%, #7c3aed 90%)",
+                    }}
+                  >
+                    Create Course
+                  </Button>
+                </Box>
+
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <Card
+                      sx={{
+                        textAlign: "center",
+                        transition: "transform 0.2s, box-shadow 0.2s",
+                        "&:hover": {
+                          transform: "translateY(-4px)",
+                          boxShadow: 4,
+                        },
+                      }}
+                    >
+                      <CardContent>
+                        <Typography variant="h2" sx={{ mb: 2 }}>
+                          📚
+                        </Typography>
+                        <Typography variant="h6" gutterBottom>
+                          JavaScript Fundamentals
+                        </Typography>
+                        <Typography color="text.secondary" variant="body2">
+                          89 enrolled students
+                        </Typography>
+                        <Box mt={2} display="flex" gap={1} justifyContent="center">
+                          <Button size="small" startIcon={<Edit />}>
+                            Edit
+                          </Button>
+                          <Button size="small" startIcon={<Visibility />}>
+                            View
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Placeholder sections */}
+          {["analytics", "settings"].includes(activeSection) && (
+            <Card>
+              <CardContent sx={{ textAlign: "center", py: 8 }}>
+                <Construction sx={{ fontSize: 80, color: "text.secondary", mb: 2 }} />
+                <Typography variant="h4" fontWeight="bold" gutterBottom>
                   {menuItems.find((item) => item.id === activeSection)?.name}
-                </h2>
-                <p>This section is under development...</p>
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
-
-      <style jsx>{`
-        .admin-container {
-          display: flex;
-          min-height: 100vh;
-          background-color: #f5f5f5;
-          font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .sidebar {
-          width: 280px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          transition: all 0.3s ease;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .sidebar.closed {
-          width: 80px;
-        }
-
-        .sidebar-header {
-          padding: 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-weight: bold;
-          font-size: 1.2em;
-          overflow: hidden;
-        }
-
-        .logo-icon {
-          font-size: 2em;
-          min-width: 40px;
-        }
-
-        .logo-text {
-          white-space: nowrap;
-          transition: opacity 0.3s ease;
-        }
-
-        .sidebar-toggle {
-          background: none;
-          border: none;
-          color: white;
-          font-size: 1.5em;
-          cursor: pointer;
-        }
-
-        .sidebar-nav {
-          flex: 1;
-          padding: 20px 0;
-        }
-
-        .nav-item {
-          width: 100%;
-          padding: 15px 20px;
-          background: none;
-          border: none;
-          color: white;
-          text-align: left;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          transition: all 0.3s ease;
-        }
-
-        .nav-item:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .nav-item.active {
-          background: rgba(255, 255, 255, 0.2);
-          border-right: 4px solid white;
-        }
-
-        .nav-icon {
-          font-size: 1.2em;
-          width: 24px;
-        }
-
-        .sidebar-footer {
-          padding: 20px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .user-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 15px;
-        }
-
-        .user-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-        }
-
-        .user-details {
-          flex: 1;
-        }
-
-        .user-name {
-          font-weight: 600;
-          font-size: 0.9em;
-        }
-
-        .user-role {
-          font-size: 0.8em;
-          opacity: 0.8;
-        }
-
-        .logout-btn {
-          width: 100%;
-          padding: 10px;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: white;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .logout-btn:hover {
-          background: rgba(255, 255, 255, 0.2);
-        }
-
-        .main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .top-bar {
-          background: white;
-          padding: 20px 30px;
-          border-bottom: 1px solid #e0e0e0;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .page-title h1 {
-          margin: 0;
-          color: #333;
-          font-size: 1.8em;
-        }
-
-        .page-title p {
-          margin: 5px 0 0 0;
-          color: #666;
-        }
-
-        .top-bar-actions {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .notification-btn {
-          background: none;
-          border: none;
-          font-size: 1.5em;
-          cursor: pointer;
-          padding: 8px;
-          border-radius: 50%;
-          transition: all 0.3s ease;
-        }
-
-        .notification-btn:hover {
-          background: #f5f5f5;
-        }
-
-        .content-area {
-          flex: 1;
-          padding: 30px;
-          overflow-y: auto;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 20px;
-          margin-bottom: 30px;
-        }
-
-        .stat-card {
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover {
-          transform: translateY(-2px);
-        }
-
-        .stat-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-
-        .stat-header h3 {
-          margin: 0;
-          color: #666;
-          font-size: 0.9em;
-          font-weight: 500;
-        }
-
-        .stat-change {
-          font-size: 0.8em;
-          padding: 4px 8px;
-          border-radius: 12px;
-          background: #e8f5e8;
-          color: #4caf50;
-        }
-
-        .stat-value {
-          font-size: 2.2em;
-          font-weight: bold;
-          margin: 0;
-        }
-
-        .charts-section {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin-bottom: 30px;
-        }
-
-        .chart-card {
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .chart-card h3 {
-          margin-top: 0;
-          color: #333;
-        }
-
-        .chart-placeholder {
-          height: 200px;
-          background: #f8f9fa;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #666;
-        }
-
-        .activity-section {
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .activity-section h3 {
-          margin-top: 0;
-          color: #333;
-        }
-
-        .activity-item {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          padding: 15px 0;
-          border-bottom: 1px solid #f0f0f0;
-        }
-
-        .activity-item:last-child {
-          border-bottom: none;
-        }
-
-        .activity-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: #f8f9fa;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .activity-time {
-          margin-left: auto;
-          color: #999;
-          font-size: 0.9em;
-        }
-
-        .management-section {
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 25px;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 500;
-          transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .table-container {
-          overflow-x: auto;
-        }
-
-        .data-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .data-table th,
-        .data-table td {
-          padding: 15px;
-          text-align: left;
-          border-bottom: 1px solid #e0e0e0;
-        }
-
-        .data-table th {
-          background: #f8f9fa;
-          font-weight: 600;
-          color: #333;
-        }
-
-        .badge {
-          padding: 4px 12px;
-          border-radius: 12px;
-          font-size: 0.8em;
-          font-weight: 500;
-        }
-
-        .badge.student {
-          background: #e3f2fd;
-          color: #1976d2;
-        }
-
-        .status.active {
-          color: #4caf50;
-        }
-
-        .btn-sm {
-          padding: 6px 12px;
-          border: 1px solid #ddd;
-          background: white;
-          border-radius: 4px;
-          cursor: pointer;
-          margin-right: 8px;
-          font-size: 0.9em;
-        }
-
-        .btn-sm:hover {
-          background: #f5f5f5;
-        }
-
-        .btn-sm.danger {
-          color: #f44336;
-          border-color: #f44336;
-        }
-
-        .course-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 20px;
-        }
-
-        .course-card {
-          background: white;
-          border: 1px solid #e0e0e0;
-          border-radius: 8px;
-          padding: 20px;
-          text-align: center;
-        }
-
-        .course-thumbnail {
-          font-size: 3em;
-          margin-bottom: 15px;
-        }
-
-        .course-actions {
-          display: flex;
-          gap: 10px;
-          justify-content: center;
-          margin-top: 15px;
-        }
-
-        .placeholder-section {
-          background: white;
-          padding: 50px;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          text-align: center;
-        }
-
-        .loading {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-          font-size: 1.2em;
-          color: #666;
-        }
-
-        @media (max-width: 768px) {
-          .sidebar {
-            width: 100%;
-            position: fixed;
-            z-index: 1000;
-            transform: translateX(-100%);
-          }
-
-          .sidebar.open {
-            transform: translateX(0);
-          }
-
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .charts-section {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-    </>
+                </Typography>
+                <Typography color="text.secondary" variant="body1">
+                  This section is under development...
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 }
