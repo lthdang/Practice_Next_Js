@@ -1,6 +1,5 @@
 import Link from "next/link";
-import Date from "../components/date";
-import Layout, { siteTitle } from "../components/layout";
+import Layout from "../components/layout";
 export default function Home() {
   return (
     <Layout>
@@ -11,8 +10,7 @@ export default function Home() {
             Welcome to Our Learning Platform
           </h1>
           <p className="text-xl md:text-2xl mb-8 opacity-90 leading-relaxed">
-            Discover amazing content, learn new skills, and join our community
-            of learners
+            Discover amazing content, learn new skills, and join our community of learners
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -40,29 +38,20 @@ export default function Home() {
         </div>
         <div className="bg-white p-8 rounded-xl shadow-lg text-center border border-gray-100 hover:shadow-xl transition-shadow">
           <div className="text-4xl mb-4">👥</div>
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">
-            1000+ Students
-          </h3>
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">1000+ Students</h3>
           <p className="text-gray-600">Active learning community</p>
         </div>
         <div className="bg-white p-8 rounded-xl shadow-lg text-center border border-gray-100 hover:shadow-xl transition-shadow">
           <div className="text-4xl mb-4">⭐</div>
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">
-            4.9/5 Rating
-          </h3>
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">4.9/5 Rating</h3>
           <p className="text-gray-600">Excellent student satisfaction</p>
         </div>
       </section>
 
       {/* Blog Section */}
-      <section
-        id="blog"
-        className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100"
-      >
+      <section id="blog" className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
         <div className="mb-8">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4">
-            Latest Blog Posts
-          </h2>
+          <h2 className="text-4xl font-bold text-gray-800 mb-4">Latest Blog Posts</h2>
           <p className="text-gray-600 text-lg">
             Stay updated with our latest insights and tutorials
           </p>
@@ -71,12 +60,9 @@ export default function Home() {
 
       {/* Call to Action */}
       <section className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-16 px-6 rounded-2xl mt-12 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">
-          Ready to Start Learning?
-        </h2>
+        <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Start Learning?</h2>
         <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-          Join thousands of students who are already transforming their careers
-          with our courses
+          Join thousands of students who are already transforming their careers with our courses
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
