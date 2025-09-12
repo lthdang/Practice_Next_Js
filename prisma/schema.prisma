@@ -8,9 +8,18 @@ datasource db {
 }
 
 model Role {
-  role_id   Int    @id @default(autoincrement())
-  role_name String @unique @db.VarChar(50)
-  users     User[]
+  role_id     Int      @id @default(autoincrement())
+  role_name   String   @unique @db.VarChar(50)
+  status      Boolean  @default(true)
+  description String?
+  created_by  Int?
+  modified_by Int?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+  // Relations
+  users       User[]   @relation("UserRole")
+  creator     User?    @relation("RoleCreatedBy", fields: [created_by], references: [user_id])
+  modifier    User?    @relation("RoleModifiedBy", fields: [modified_by], references: [user_id])
 }
 
 model User {
@@ -28,8 +37,10 @@ model User {
   created_courses Course[]             @relation("CreatedCourses")
   enrollments     Enrollment[]
   created_lessons Lesson[]             @relation("CreatedLessons")
-  role            Role                 @relation(fields: [role_id], references: [role_id])
+  role            Role                 @relation("UserRole", fields: [role_id], references: [role_id])
   progress        UserLessonProgress[]
+  created_roles   Role[]               @relation("RoleCreatedBy")
+  modified_roles  Role[]               @relation("RoleModifiedBy")
 }
 
 model Course {
