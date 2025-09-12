@@ -1,15 +1,15 @@
-import Head from "next/head";
-import { useState } from "react";
-import { useRouter } from "next/router";
-import Link from "next/link";
-
+import Head from 'next/head';
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { LoginResponse } from '../components/home/interface';
 export default function Login() {
   const [formData, setFormData] = useState({
-    username: "",
-    password: "",
+    username: '',
+    password: '',
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -17,37 +17,41 @@ export default function Login() {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    setError(""); // Clear error when user starts typing
+    setError(''); // Clear error when user starts typing
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
-
-      if (data.status === "success") {
-        // Store user data in localStorage
-        localStorage.setItem("user", JSON.stringify(data.data.user));
+      const data: LoginResponse = await response.json();
+      if (data.status === 'success' && data.data?.user) {
+        // Store user data and token
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+        localStorage.setItem('token', data.data.token);
 
         // Redirect based on role
-        router.push(data.data.redirectTo);
+        if (data.data.user.role_id === 1) {
+          router.push('/admin');
+        } else {
+          router.push('/customer');
+        }
       } else {
-        setError(data.message || "Login failed");
+        setError(data.message || 'Login failed');
       }
     } catch (error) {
-      console.error("Login error:", error);
-      setError("Network error. Please try again.");
+      console.error('Login error:', error);
+      setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -166,10 +170,7 @@ export default function Login() {
                     type="checkbox"
                     className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-white/30 bg-white/20 rounded"
                   />
-                  <label
-                    htmlFor="remember-me"
-                    className="ml-2 block text-sm text-white/80"
-                  >
+                  <label htmlFor="remember-me" className="ml-2 block text-sm text-white/80">
                     Remember me
                   </label>
                 </div>
@@ -190,8 +191,8 @@ export default function Login() {
                   disabled={loading}
                   className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white transition-all duration-300 ${
                     loading
-                      ? "bg-purple-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-lg hover:shadow-xl"
+                      ? 'bg-purple-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-lg hover:shadow-xl'
                   }`}
                 >
                   {loading && (
@@ -215,7 +216,7 @@ export default function Login() {
                       ></path>
                     </svg>
                   )}
-                  {loading ? "Signing In..." : "Sign In"}
+                  {loading ? 'Signing In...' : 'Sign In'}
                 </button>
               </div>
 
@@ -225,9 +226,7 @@ export default function Login() {
                   <div className="w-full border-t border-white/30" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-transparent text-white/60">
-                    Or continue with
-                  </span>
+                  <span className="px-2 bg-transparent text-white/60">Or continue with</span>
                 </div>
               </div>
 
@@ -262,11 +261,7 @@ export default function Login() {
                   type="button"
                   className="w-full inline-flex justify-center py-2 px-4 border border-white/30 rounded-lg bg-white/10 text-sm font-medium text-white hover:bg-white/20 transition-all duration-300 backdrop-blur-sm"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
                   <span className="ml-2">Facebook</span>
@@ -277,7 +272,7 @@ export default function Login() {
             {/* Sign Up Link */}
             <div className="mt-6 text-center">
               <p className="text-white/60 text-sm">
-                Don't have an account?{" "}
+                Don't have an account?{' '}
                 <Link
                   href="/signup"
                   className="font-medium text-purple-200 hover:text-white transition-colors"
@@ -294,12 +289,7 @@ export default function Login() {
               href="/"
               className="inline-flex items-center text-purple-200 hover:text-white transition-colors"
             >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
