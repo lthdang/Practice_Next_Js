@@ -16,16 +16,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           email: true,
           full_name: true,
           role_id: true,
+          status: true,
           created_at: true,
           updated_at: true,
           role: {
             select: {
+              role_id: true,
               role_name: true,
             },
           },
         },
         where: {
-          deleted_at: null, // Only get non-deleted users
+          deleted_at: null, // Only filter soft-deleted users
+        },
+        orderBy: {
+          created_at: 'desc', // Show newest users first
         },
       });
 
@@ -94,6 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
           ...userData,
           password_hash,
+          status: true, // Set default status to true for new users
         },
         select: {
           user_id: true,
@@ -101,6 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           email: true,
           full_name: true,
           role_id: true,
+          status: true,
           created_at: true,
           role: {
             select: {
@@ -138,7 +145,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           error: validationResult.error.issues,
         });
       }
-      const { user_id, password, ...updateDataUpdate } = validationResult.data;
+
+      const { user_id, password, status, ...updateDataUpdate } = validationResult.data;
+
       // Check if user exists
       const existingUser = await prisma.user.findUnique({
         where: { user_id },
@@ -168,27 +177,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         if (duplicateUser) {
-          return res.status(409).json({
+          return apiResponse(res, 409, {
+            status: 'error',
             message: 'Username or email already exists',
           });
         }
       }
 
+      // Prepare update data
+      const updateData = {
+        ...updateDataUpdate,
+        status: typeof status === 'boolean' ? status : undefined,
+      };
+
       // Hash new password if provided
       if (password) {
-        updateDataUpdate['password_hash'] = await bcrypt.hash(password, 10);
+        updateData['password_hash'] = await bcrypt.hash(password, SALT_ROUNDS);
       }
 
       // Update user
       const updatedUser = await prisma.user.update({
         where: { user_id },
-        data: updateDataUpdate,
+        data: updateData,
         select: {
           user_id: true,
           username: true,
           email: true,
           full_name: true,
           role_id: true,
+          status: true,
           created_at: true,
           updated_at: true,
           role: {
@@ -206,6 +223,78 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     } catch (error) {
       console.error('Error updating user:', error);
+      return apiResponse(res, 500, {
+        status: 'error',
+        message: 'Internal Server Error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  // DELETE - Delete user
+  if (req.method === 'DELETE') {
+    try {
+      const { user_id } = req.body;
+
+      if (!user_id) {
+        return apiResponse(res, 400, {
+          status: 'error',
+          message: 'User ID is required',
+        });
+      }
+
+      // Check if user exists
+      const existingUser = await prisma.user.findUnique({
+        where: { user_id: Number(user_id) },
+      });
+
+      if (!existingUser) {
+        return apiResponse(res, 404, {
+          status: 'error',
+          message: 'User not found',
+        });
+      }
+
+      // Check associations
+      const userAssociations = await prisma.user.findUnique({
+        where: { user_id: Number(user_id) },
+        select: {
+          _count: {
+            select: {
+              created_roles: true,
+              modified_roles: true,
+            },
+          },
+        },
+      });
+
+      if (
+        userAssociations?._count.created_roles > 0 ||
+        userAssociations?._count.modified_roles > 0
+      ) {
+        return apiResponse(res, 400, {
+          status: 'error',
+          message: 'Cannot delete user with associated roles. Please reassign roles first.',
+        });
+      }
+
+      // Perform soft delete
+      await prisma.user.update({
+        where: {
+          user_id: Number(user_id),
+        },
+        data: {
+          deleted_at: new Date(),
+          status: false, // Changed from 'active' to 'status'
+        },
+      });
+
+      return apiResponse(res, 200, {
+        status: 'success',
+        message: 'User deleted successfully',
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
       return apiResponse(res, 500, {
         status: 'error',
         message: 'Internal Server Error',

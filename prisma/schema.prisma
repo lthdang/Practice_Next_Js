@@ -16,10 +16,9 @@ model Role {
   modified_by Int?
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now()) @updatedAt
-  // Relations
-  users       User[]   @relation("UserRole")
   creator     User?    @relation("RoleCreatedBy", fields: [created_by], references: [user_id])
   modifier    User?    @relation("RoleModifiedBy", fields: [modified_by], references: [user_id])
+  users       User[]   @relation("UserRole")
 }
 
 model User {
@@ -33,21 +32,24 @@ model User {
   created_at      DateTime             @default(now())
   updated_at      DateTime             @updatedAt
   deleted_at      DateTime?
+  status          Boolean              @default(true)
   comments        Comment[]
   created_courses Course[]             @relation("CreatedCourses")
   enrollments     Enrollment[]
   created_lessons Lesson[]             @relation("CreatedLessons")
-  role            Role                 @relation("UserRole", fields: [role_id], references: [role_id])
-  progress        UserLessonProgress[]
   created_roles   Role[]               @relation("RoleCreatedBy")
   modified_roles  Role[]               @relation("RoleModifiedBy")
+  role            Role                 @relation("UserRole", fields: [role_id], references: [role_id])
+  progress        UserLessonProgress[]
+
+  @@index([deleted_at])
 }
 
 model Course {
   course_id     Int          @id @default(autoincrement())
   title         String       @db.VarChar(255)
   language      String       @db.VarChar(50)
-  price         Decimal      @db.Decimal(10,2)
+  price         Decimal      @db.Decimal(10, 2)
   description   String?      @db.VarChar(1000)
   thumbnail_url String?      @db.VarChar(255)
   created_by_id Int

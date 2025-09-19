@@ -15,11 +15,12 @@ import {
 import { AccountCircle, Logout, Notifications } from '@mui/icons-material';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import { useState } from 'react';
-import { MenuData, UserData } from './interface';
 import { useRouter } from 'next/router';
+import { MenuData } from './interface';
+import { UserData } from './interface';
 
 interface AppBarContentProps {
-  data: MenuData[];
+  menuItems: MenuData[];
   user: UserData;
   activeSection: string;
   handleDrawerToggle: () => void;
@@ -27,7 +28,7 @@ interface AppBarContentProps {
 }
 
 export const AppBarContent = ({
-  data,
+  menuItems,
   user,
   activeSection,
   handleDrawerToggle,
@@ -60,7 +61,7 @@ export const AppBarContent = ({
           {/* Breadcrumb navigation */}
           <Typography variant="h5" fontWeight="bold" color="text.primary">
             {(() => {
-              const parentItem = data.find((item) =>
+              const parentItem = menuItems.find((item) =>
                 item.children?.some((child) => child.id === activeSection)
               );
               if (parentItem) {
@@ -68,7 +69,7 @@ export const AppBarContent = ({
                   <>{parentItem.children?.find((child) => child.id === activeSection)?.name}</>
                 );
               }
-              return data.find((item) => item.id === activeSection)?.name || 'Dashboard';
+              return menuItems.find((item) => item.id === activeSection)?.name || 'Dashboard';
             })()}
           </Typography>
         </Stack>

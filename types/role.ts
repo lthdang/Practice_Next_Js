@@ -8,14 +8,11 @@ export interface UpdateRoleDTO extends CreateRoleDTO {
   role_id: number;
 }
 
-export interface RoleResponse {
+export interface Role {
   role_id: number;
   role_name: string;
-  description: string | null;
   status: boolean;
-  created_at: Date;
-  updated_at: Date;
-  _count?: {
-    users: number;
-  };
+  description?: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
