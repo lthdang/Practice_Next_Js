@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { apiResponse } from '../../utils/apiResponse';
-import { CreateRoleDTO, UpdateRoleDTO } from '../../types/role';
 import { z } from 'zod';
 const prisma = new PrismaClient();
 
@@ -196,10 +195,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // DELETE - Soft delete role
   if (req.method === 'DELETE') {
     try {
-      const { role_id } = req.body;
+      const { id } = req.query;
 
       // Validation
-      if (!role_id) {
+      if (!id) {
         return apiResponse(res, 400, {
           status: 'error',
           message: 'role_id is required for deletion',
@@ -208,7 +207,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Check if role exists
       const existingRole = await prisma.role.findUnique({
-        where: { role_id: Number(role_id) },
+        where: { role_id: Number(id) },
         include: {
           _count: {
             select: {
@@ -235,7 +234,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Delete role
       await prisma.role.delete({
-        where: { role_id: Number(role_id) },
+        where: { role_id: Number(id) },
       });
 
       return apiResponse(res, 200, {
