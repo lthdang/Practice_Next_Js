@@ -12,18 +12,12 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Paper,
   Snackbar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Tooltip,
   Typography,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
 import { UserData } from '../../../types/user';
@@ -138,6 +132,77 @@ export const UserManagement = () => {
     }
   };
 
+  const columns: GridColDef[] = [
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      valueGetter: (value, row) => {
+        return row?.full_name || row?.username || '';
+      },
+    },
+    {
+      field: 'email',
+      headerName: 'Email',
+      flex: 1,
+    },
+    {
+      field: 'role',
+      headerName: 'Role',
+      flex: 1,
+      renderCell: (params) => {
+        const row = params.row as UserData;
+        return <Chip label={row.role.role_name} color="primary" size="small" variant="outlined" />;
+      },
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      flex: 1,
+      renderCell: (params: GridRenderCellParams<UserData>) => (
+        <Tooltip title={params.row.status ? 'Active' : 'Inactive'}>
+          <Chip
+            label={params.row.status ? 'Active' : 'Inactive'}
+            color={params.row.status ? 'success' : 'default'}
+            size="small"
+            sx={{
+              '&.MuiChip-colorSuccess': {
+                backgroundColor: 'success.light',
+                color: 'success.dark',
+              },
+              '&.MuiChip-colorDefault': {
+                backgroundColor: 'grey.200',
+                color: 'grey.700',
+              },
+            }}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      flex: 1,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<UserData>) => (
+        <Box>
+          <Tooltip title="Edit User">
+            <IconButton size="small" color="primary" onClick={() => handleEditClick(params.row)}>
+              <Edit />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={params.row.status ? 'Deactivate User' : 'User is already inactive'}>
+            <span>
+              <IconButton size="small" color="error" onClick={() => handleDeleteClick(params.row)}>
+                <Delete />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+      ),
+    },
+  ];
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -170,90 +235,30 @@ export const UserManagement = () => {
             {error}
           </Typography>
         ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow
-                    key={user.user_id}
-                    sx={{
-                      backgroundColor: !user.status ? 'action.hover' : 'inherit',
-                    }}
-                  >
-                    <TableCell>{user.full_name || user.username}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.role.role_name}
-                        color="primary"
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title={user.status ? 'Active' : 'Inactive'}>
-                        <Chip
-                          label={user.status ? 'Active' : 'Inactive'}
-                          color={user.status ? 'success' : 'default'}
-                          size="small"
-                          sx={{
-                            '&.MuiChip-colorSuccess': {
-                              backgroundColor: 'success.light',
-                              color: 'success.dark',
-                            },
-                            '&.MuiChip-colorDefault': {
-                              backgroundColor: 'grey.200',
-                              color: 'grey.700',
-                            },
-                          }}
-                        />
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title="Edit User">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleEditClick(user)}
-                        >
-                          <Edit />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title={user.status ? 'Deactivate User' : 'User is already inactive'}>
-                        <span>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDeleteClick(user)}
-                          >
-                            <Delete />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {users.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">
-                      <Typography variant="body2" color="text.secondary">
-                        No users found
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Box sx={{ height: 400, width: '100%' }}>
+            <DataGrid
+              rows={users}
+              columns={columns}
+              getRowId={(row) => row.user_id}
+              pagination
+              pageSizeOptions={[5, 10, 25]}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 10, page: 0 },
+                },
+              }}
+              sx={{
+                '& .MuiDataGrid-row': {
+                  backgroundColor: (theme) => theme.palette.background.paper,
+                  '&:nth-of-type(odd)': {
+                    backgroundColor: (theme) => theme.palette.action.hover,
+                  },
+                },
+              }}
+              disableRowSelectionOnClick
+              autoHeight
+            />
+          </Box>
         )}
 
         <AddUserDialog
