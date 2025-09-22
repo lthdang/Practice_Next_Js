@@ -3,8 +3,16 @@ import { PrismaClient } from '@prisma/client';
 import { CreateUserSchema, UpdateUserSchema } from '../../types/user';
 import bcrypt from 'bcryptjs';
 import { apiResponse } from '../../utils/apiResponse';
+import { z } from 'zod';
+
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
+
+const DeleteUserSchema = z.object({
+  user_id: z.number().int().positive('User ID must be a positive number'),
+  deleteType: z.enum(['soft', 'hard']),
+});
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // GET - Get all users
   if (req.method === 'GET') {
@@ -26,12 +34,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
           },
         },
-        where: {
-          deleted_at: null, // Only filter soft-deleted users
-        },
-        orderBy: {
-          created_at: 'desc', // Show newest users first
-        },
+        orderBy: [
+          {
+            status: 'desc', // Active users first
+          },
+          {
+            created_at: 'desc', // Then by creation date
+          },
+        ],
       });
 
       return apiResponse(res, 200, {
@@ -234,18 +244,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // DELETE - Delete user
   if (req.method === 'DELETE') {
     try {
-      const { user_id } = req.body;
+      const validationResult = DeleteUserSchema.safeParse(req.body);
 
-      if (!user_id) {
+      if (!validationResult.success) {
         return apiResponse(res, 400, {
           status: 'error',
-          message: 'User ID is required',
+          message: 'Validation failed',
+          error: validationResult.error.issues,
         });
       }
 
+      const { user_id, deleteType } = validationResult.data;
+
       // Check if user exists
       const existingUser = await prisma.user.findUnique({
-        where: { user_id: Number(user_id) },
+        where: { user_id },
       });
 
       if (!existingUser) {
@@ -255,43 +268,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      // Check associations
-      const userAssociations = await prisma.user.findUnique({
-        where: { user_id: Number(user_id) },
-        select: {
-          _count: {
-            select: {
-              created_roles: true,
-              modified_roles: true,
+      if (deleteType === 'hard') {
+        // Check for associations before hard delete
+        const userAssociations = await prisma.user.findUnique({
+          where: { user_id },
+          select: {
+            _count: {
+              select: {
+                created_roles: true,
+                modified_roles: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      if (
-        userAssociations?._count.created_roles > 0 ||
-        userAssociations?._count.modified_roles > 0
-      ) {
-        return apiResponse(res, 400, {
-          status: 'error',
-          message: 'Cannot delete user with associated roles. Please reassign roles first.',
+        if (
+          userAssociations?._count.created_roles > 0 ||
+          userAssociations?._count.modified_roles > 0
+        ) {
+          return apiResponse(res, 400, {
+            status: 'error',
+            message: 'Cannot permanently delete user with associated data',
+          });
+        }
+
+        // Perform hard delete
+        await prisma.user.delete({
+          where: { user_id },
+        });
+      } else {
+        // Perform soft delete
+        await prisma.user.update({
+          where: { user_id },
+          data: {
+            status: false,
+            deleted_at: new Date(),
+          },
         });
       }
 
-      // Perform soft delete
-      await prisma.user.update({
-        where: {
-          user_id: Number(user_id),
-        },
-        data: {
-          deleted_at: new Date(),
-          status: false, // Changed from 'active' to 'status'
-        },
-      });
-
       return apiResponse(res, 200, {
         status: 'success',
-        message: 'User deleted successfully',
+        message: deleteType === 'hard' ? 'User permanently deleted' : 'User disabled successfully',
       });
     } catch (error) {
       console.error('Error deleting user:', error);

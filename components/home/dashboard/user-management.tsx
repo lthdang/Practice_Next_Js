@@ -101,7 +101,7 @@ export const UserManagement = () => {
     setOpenDeleteDialog(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (deleteType: 'soft' | 'hard') => {
     if (!selectedUser) return;
 
     try {
@@ -110,12 +110,11 @@ export const UserManagement = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ user_id: selectedUser.user_id }),
+        body: JSON.stringify({
+          user_id: selectedUser.user_id,
+          deleteType,
+        }),
       });
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
 
       const result = await response.json();
 
@@ -124,7 +123,7 @@ export const UserManagement = () => {
       }
 
       setNotification({
-        message: 'User deleted successfully',
+        message: deleteType === 'hard' ? 'User permanently deleted' : 'User disabled successfully',
         severity: 'success',
       });
 
@@ -133,7 +132,7 @@ export const UserManagement = () => {
       setSelectedUser(null);
     } catch (error) {
       setNotification({
-        message: error instanceof Error ? error.message : 'Failed to delete user',
+        message: error instanceof Error ? error.message : 'Failed to process user deletion',
         severity: 'error',
       });
     }
@@ -235,7 +234,6 @@ export const UserManagement = () => {
                             size="small"
                             color="error"
                             onClick={() => handleDeleteClick(user)}
-                            disabled={!user.status}
                           >
                             <Delete />
                           </IconButton>
@@ -287,15 +285,41 @@ export const UserManagement = () => {
           }}
         />
 
-        <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+        <Dialog
+          open={openDeleteDialog}
+          onClose={() => setOpenDeleteDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
           <DialogTitle>Delete User</DialogTitle>
           <DialogContent>
-            Are you sure you want to delete {selectedUser?.full_name || selectedUser?.username}?
+            <Box sx={{ mt: 1 }}>
+              <Typography gutterBottom>
+                What would you like to do with user "
+                {selectedUser?.full_name || selectedUser?.username}"?
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                • Disable user: User will be marked as inactive but data will be preserved
+                <br />• Delete permanently: All user data will be permanently removed
+              </Typography>
+            </Box>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-            <LoadingButton onClick={handleDeleteConfirm} color="error" variant="contained">
-              Delete
+            <LoadingButton
+              onClick={() => handleDeleteConfirm('soft')}
+              color="warning"
+              variant="contained"
+              sx={{ mr: 1 }}
+            >
+              Disable User
+            </LoadingButton>
+            <LoadingButton
+              onClick={() => handleDeleteConfirm('hard')}
+              color="error"
+              variant="contained"
+            >
+              Delete Permanently
             </LoadingButton>
           </DialogActions>
         </Dialog>
