@@ -195,46 +195,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // DELETE - Soft delete role
   if (req.method === 'DELETE') {
     try {
-      const { id } = req.query;
+      const { role_id } = req.query;
 
-      // Validation
-      if (!id) {
+      if (!role_id) {
         return apiResponse(res, 400, {
           status: 'error',
-          message: 'role_id is required for deletion',
+          message: 'role_id is required in query parameters',
         });
       }
 
       // Check if role exists
       const existingRole = await prisma.role.findUnique({
-        where: { role_id: Number(id) },
-        include: {
-          _count: {
-            select: {
-              users: true,
-            },
-          },
-        },
+        where: { role_id: Number(role_id) },
       });
 
       if (!existingRole) {
         return apiResponse(res, 404, {
           status: 'error',
-          message: 'Role not found',
+          message: `Role with ID ${role_id} not found`,
         });
       }
 
-      // Check if role has users assigned
-      if (existingRole._count.users > 0) {
+      // Check for associated users
+      const usersWithRole = await prisma.user.count({
+        where: { role_id: Number(role_id) },
+      });
+
+      if (usersWithRole > 0) {
         return apiResponse(res, 400, {
           status: 'error',
-          message: `Cannot delete role. ${existingRole._count.users} user(s) are assigned to this role.`,
+          message: 'Cannot delete role with associated users',
         });
       }
 
-      // Delete role
+      // Perform delete
       await prisma.role.delete({
-        where: { role_id: Number(id) },
+        where: { role_id: Number(role_id) },
       });
 
       return apiResponse(res, 200, {
@@ -245,7 +241,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('Error deleting role:', error);
       return apiResponse(res, 500, {
         status: 'error',
-        message: 'Internal Server Error',
+        message: 'Internal server error',
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
