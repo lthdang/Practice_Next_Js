@@ -17,13 +17,15 @@ import {
   Typography,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid as DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
 import { UserData } from '../../../types/user';
 import { AddUserDialog } from './AddUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { ApiError, ApiResponse } from '../../../types/api';
+import { canEditContent, isSuperAdmin } from '../../../utils/permissions';
+import { getAuthHeaders } from '../../../utils/auth-headers';
 
 interface Notification {
   message: string;
@@ -101,9 +103,7 @@ export const UserManagement = () => {
     try {
       const response = await fetch('/api/user', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           user_id: selectedUser.user_id,
           deleteType,
@@ -184,22 +184,45 @@ export const UserManagement = () => {
       headerName: 'Actions',
       flex: 1,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<UserData>) => (
-        <Box>
-          <Tooltip title="Edit User">
-            <IconButton size="small" color="primary" onClick={() => handleEditClick(params.row)}>
-              <Edit />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={params.row.status ? 'Deactivate User' : 'User is already inactive'}>
-            <span>
-              <IconButton size="small" color="error" onClick={() => handleDeleteClick(params.row)}>
-                <Delete />
+      renderCell: (params: GridRenderCellParams<UserData>) => {
+        const hasPermission = canEditContent();
+        const isTargetSuperAdmin = isSuperAdmin(params.row);
+
+        // Don't show any actions if current user doesn't have permission
+        if (!hasPermission) {
+          return null;
+        }
+
+        // Don't show edit/delete buttons for super_admin users
+        if (isTargetSuperAdmin) {
+          return (
+            <Typography variant="caption" color="text.secondary">
+              Protected
+            </Typography>
+          );
+        }
+
+        return (
+          <Box>
+            <Tooltip title="Edit User">
+              <IconButton size="small" color="primary" onClick={() => handleEditClick(params.row)}>
+                <Edit />
               </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-      ),
+            </Tooltip>
+            <Tooltip title={params.row.status ? 'Deactivate User' : 'User is already inactive'}>
+              <span>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleDeleteClick(params.row)}
+                >
+                  <Delete />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        );
+      },
     },
   ];
 

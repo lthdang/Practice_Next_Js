@@ -1,14 +1,14 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import { apiResponse } from "../../../utils/apiResponse";
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { apiResponse } from '../../../utils/apiResponse';
 
 const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
+  if (req.method !== 'POST') {
     return apiResponse(res, 405, {
-      status: "error",
-      message: "Method Not Allowed",
+      status: 'error',
+      message: 'Method Not Allowed',
     });
   }
 
@@ -18,8 +18,8 @@ export default async function handler(req, res) {
     // Validation
     if (!username || !password) {
       return apiResponse(res, 400, {
-        status: "error",
-        message: "Username and password are required",
+        status: 'error',
+        message: 'Username and password are required',
       });
     }
 
@@ -41,8 +41,8 @@ export default async function handler(req, res) {
 
     if (!user) {
       return apiResponse(res, 401, {
-        status: "error",
-        message: "Invalid username or password",
+        status: 'error',
+        message: 'Invalid username or password',
       });
     }
 
@@ -51,8 +51,8 @@ export default async function handler(req, res) {
 
     if (!isPasswordValid) {
       return apiResponse(res, 401, {
-        status: "error",
-        message: "Invalid username or password",
+        status: 'error',
+        message: 'Invalid username or password',
       });
     }
 
@@ -60,18 +60,18 @@ export default async function handler(req, res) {
     const { password_hash, ...userWithoutPassword } = user;
 
     return apiResponse(res, 200, {
-      status: "success",
-      message: "Login successful",
+      status: 'success',
+      message: 'Login successful',
       data: {
         user: userWithoutPassword,
-        redirectTo: user.role_id === 1 ? "/admin" : "/customer",
+        redirectTo: user.role_id === 1 ? '/admin' : '/',
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error('Login error:', error);
     return apiResponse(res, 500, {
-      status: "error",
-      message: "Internal Server Error",
+      status: 'error',
+      message: 'Internal Server Error',
       error: error.message,
     });
   }

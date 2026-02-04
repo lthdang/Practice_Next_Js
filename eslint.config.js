@@ -32,7 +32,7 @@ const eslintConfig = [
       'comma-dangle': ['warn', 'always-multiline'],
       'object-curly-spacing': ['warn', 'always'],
       'array-bracket-spacing': ['warn', 'never'],
-      indent: ['warn', 2],
+      // indent: ['warn', 2], // Disabled due to stack overflow issues
       'no-multiple-empty-lines': ['warn', { max: 1 }],
       'eol-last': ['warn', 'always'],
     },
