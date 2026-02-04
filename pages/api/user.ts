@@ -13,6 +13,41 @@ const DeleteUserSchema = z.object({
   deleteType: z.enum(['soft', 'hard']),
 });
 
+// Helper function to check if user has permission (super_admin or sub_admin)
+async function hasEditPermission(
+  req: NextApiRequest
+): Promise<{ authorized: boolean; role?: string; userId?: number }> {
+  try {
+    // Note: Next.js converts header names to lowercase
+    const userId = req.headers['x-user-id'] as string;
+    const roleId = req.headers['x-role-id'] as string;
+
+    if (!userId || !roleId) {
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { user_id: Number(userId) },
+      include: { role: true },
+    });
+
+    if (!user || !user.role) {
+      return { authorized: false };
+    }
+
+    const allowedRoles = ['super_admin', 'sub_admin'];
+    const authorized = allowedRoles.includes(user.role.role_name);
+
+    return {
+      authorized,
+      role: user.role.role_name,
+      userId: user.user_id,
+    };
+  } catch (error) {
+    console.error('Error checking permissions:', error);
+    return { authorized: false };
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // GET - Get all users
   if (req.method === 'GET') {
@@ -145,6 +180,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // PUT - Update user
   if (req.method === 'PUT') {
     try {
+      // Check permissions
+      const permission = await hasEditPermission(req);
+      if (!permission.authorized) {
+        return apiResponse(res, 403, {
+          status: 'error',
+          message: 'Forbidden: You do not have permission to edit users',
+        });
+      }
+
       const validationResult = UpdateUserSchema.safeParse(req.body);
 
       // Validation
@@ -244,6 +288,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // DELETE - Delete user
   if (req.method === 'DELETE') {
     try {
+      // Check permissions
+      const permission = await hasEditPermission(req);
+      if (!permission.authorized) {
+        return apiResponse(res, 403, {
+          status: 'error',
+          message: 'Forbidden: You do not have permission to delete users',
+        });
+      }
+
       const validationResult = DeleteUserSchema.safeParse(req.body);
 
       if (!validationResult.success) {
