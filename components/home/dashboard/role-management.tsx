@@ -16,12 +16,15 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { LoadingButton } from '@mui/lab';
+import { DataGrid as DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import { Role } from '../../../types/role';
 import { ApiResponse } from '../../../types/api';
 import { AddRoleDialog } from './AddRoleDialog';
 import { EditRoleDialog } from './EditRoleDialog';
+import { canEditContent, isSuperAdmin } from '../../../utils/permissions';
+import { getAuthHeaders } from '../../../utils/auth-headers';
 
 interface Notification {
   message: string;
@@ -105,22 +108,45 @@ export const RoleManagement = () => {
       headerName: 'Actions',
       flex: 1,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<Role>) => (
-        <Box>
-          <Tooltip title="Edit Role">
-            <IconButton size="small" color="primary" onClick={() => handleEditClick(params.row)}>
-              <Edit />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={params.row.status ? 'Deactivate Role' : 'Role is already inactive'}>
-            <span>
-              <IconButton size="small" color="error" onClick={() => handleDeleteClick(params.row)}>
-                <Delete />
+      renderCell: (params: GridRenderCellParams<Role>) => {
+        const hasPermission = canEditContent();
+        const isTargetSuperAdmin = isSuperAdmin(params.row);
+
+        // Don't show any actions if current user doesn't have permission
+        if (!hasPermission) {
+          return null;
+        }
+
+        // Don't show edit/delete buttons for super_admin role
+        if (isTargetSuperAdmin) {
+          return (
+            <Typography variant="caption" color="text.secondary">
+              Protected
+            </Typography>
+          );
+        }
+
+        return (
+          <Box>
+            <Tooltip title="Edit Role">
+              <IconButton size="small" color="primary" onClick={() => handleEditClick(params.row)}>
+                <Edit />
               </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-      ),
+            </Tooltip>
+            <Tooltip title={params.row.status ? 'Deactivate Role' : 'Role is already inactive'}>
+              <span>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleDeleteClick(params.row)}
+                >
+                  <Delete />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        );
+      },
     },
   ];
 
@@ -150,7 +176,7 @@ export const RoleManagement = () => {
     setOpenDeleteDialog(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (deleteType: 'soft' | 'hard') => {
     if (!selectedRole) {
       setNotification({
         message: 'No role selected for deletion',
@@ -160,9 +186,13 @@ export const RoleManagement = () => {
     }
 
     try {
-      const response = await fetch(`/api/role?role_id=${selectedRole.role_id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/role?role_id=${selectedRole.role_id}&deleteType=${deleteType}`,
+        {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        }
+      );
 
       const result = await response.json();
 
@@ -174,7 +204,7 @@ export const RoleManagement = () => {
       setOpenDeleteDialog(false);
       setSelectedRole(null);
       setNotification({
-        message: 'Role deleted successfully',
+        message: `Role ${deleteType === 'soft' ? 'deactivated' : 'deleted permanently'} successfully`,
         severity: 'success',
       });
     } catch (error) {
@@ -258,16 +288,48 @@ export const RoleManagement = () => {
           onSuccess={handleEditSuccess}
         />
 
-        <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+        <Dialog
+          open={openDeleteDialog}
+          onClose={() => setOpenDeleteDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
           <DialogTitle>Delete Role</DialogTitle>
           <DialogContent>
-            Are you sure you want to delete the role "{selectedRole?.role_name}"?
+            <Typography variant="body1" gutterBottom>
+              Are you sure you want to delete the role "{selectedRole?.role_name}"?
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              Choose the type of deletion:
+            </Typography>
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+              <Typography variant="body2" gutterBottom>
+                <strong>Soft Delete:</strong> Deactivates the role but keeps the data in the
+                database.
+              </Typography>
+              <Typography variant="body2">
+                <strong>Hard Delete:</strong> Permanently removes the role from the database. This
+                cannot be undone.
+              </Typography>
+            </Box>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-              Delete
-            </Button>
+            <LoadingButton
+              onClick={() => handleDeleteConfirm('soft')}
+              color="warning"
+              variant="contained"
+              sx={{ mr: 1 }}
+            >
+              Disable Role
+            </LoadingButton>
+            <LoadingButton
+              onClick={() => handleDeleteConfirm('hard')}
+              color="error"
+              variant="contained"
+            >
+              Delete Permanently
+            </LoadingButton>
           </DialogActions>
         </Dialog>
 

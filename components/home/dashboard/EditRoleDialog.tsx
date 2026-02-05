@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import { Role } from '../../../types/role';
+import { getAuthHeaders } from '../../../utils/auth-headers';
 
 interface EditRoleDialogProps {
   open: boolean;
@@ -61,9 +62,7 @@ export const EditRoleDialog = ({ open, role, onClose, onSuccess }: EditRoleDialo
 
       const response = await fetch('/api/role', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(formattedData),
       });
 

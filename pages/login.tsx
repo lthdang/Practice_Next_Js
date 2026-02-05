@@ -44,7 +44,7 @@ export default function Login() {
         if (data.data.user.role_id === 1) {
           router.push('/admin');
         } else {
-          router.push('/customer');
+          router.push('/');
         }
       } else {
         setError(data.message || 'Login failed');

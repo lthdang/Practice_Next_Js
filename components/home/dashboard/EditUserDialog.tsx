@@ -14,12 +14,14 @@ import {
   MenuItem,
   FormHelperText,
   Typography,
-  Stack,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import { ApiError } from '../../../types/api';
 import { UserData } from '../../../types/user';
 import { Role } from '../../../types/role';
+import { getAuthHeaders } from '../../../utils/auth-headers';
 
 interface EditUserDialogProps {
   open: boolean;
@@ -34,6 +36,7 @@ interface EditUserFormData {
   email: string;
   full_name?: string;
   role_id: number;
+  status: boolean;
 }
 
 export const EditUserDialog = ({
@@ -48,11 +51,13 @@ export const EditUserDialog = ({
     email: '',
     full_name: '',
     role_id: 0,
+    status: true,
   });
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     fetchRoles();
@@ -62,6 +67,7 @@ export const EditUserDialog = ({
         email: user.email,
         full_name: user.full_name || '',
         role_id: user.role_id,
+        status: user.status,
       });
     }
   }, [user]);
@@ -90,9 +96,7 @@ export const EditUserDialog = ({
     try {
       const response = await fetch('/api/user', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           user_id: user.user_id,
           ...formData,
@@ -140,10 +144,43 @@ export const EditUserDialog = ({
       email: '',
       full_name: '',
       role_id: 0,
+      status: true,
     });
     setError('');
     setFieldErrors({});
     onClose();
+  };
+
+  const handleRestore = async () => {
+    if (!user) return;
+
+    setRestoring(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/user', {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          user_id: user.user_id,
+          deleted_at: null,
+          status: true,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.status === 'error') {
+        throw new Error(result.message);
+      }
+
+      onSuccess();
+      handleClose();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to restore user');
+    } finally {
+      setRestoring(false);
+    }
   };
 
   return (
@@ -157,6 +194,31 @@ export const EditUserDialog = ({
                 {error}
               </Alert>
             )}
+
+            {user?.deleted_at && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Box>
+                  <Typography variant="body2" fontWeight="bold" gutterBottom>
+                    This user is soft-deleted
+                  </Typography>
+                  <Typography variant="body2" gutterBottom>
+                    The user account has been deactivated. You can restore it to reactivate the
+                    account.
+                  </Typography>
+                  <LoadingButton
+                    variant="contained"
+                    color="success"
+                    size="small"
+                    onClick={handleRestore}
+                    loading={restoring}
+                    sx={{ mt: 1 }}
+                  >
+                    Restore User Account
+                  </LoadingButton>
+                </Box>
+              </Alert>
+            )}
+
             <TextField
               label="Username"
               fullWidth
@@ -200,6 +262,15 @@ export const EditUserDialog = ({
               </Select>
               {fieldErrors.role_id && <FormHelperText error>{fieldErrors.role_id}</FormHelperText>}
             </FormControl>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.checked })}
+                />
+              }
+              label="Active"
+            />
           </Box>
         </DialogContent>
         <DialogActions>

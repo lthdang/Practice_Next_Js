@@ -4,6 +4,42 @@ import { apiResponse } from '../../utils/apiResponse';
 import { z } from 'zod';
 const prisma = new PrismaClient();
 
+// Helper function to check if user has permission (super_admin or sub_admin)
+async function hasEditPermission(
+  req: NextApiRequest
+): Promise<{ authorized: boolean; role?: string; userId?: number }> {
+  try {
+    // Note: Next.js converts header names to lowercase
+    const userId = req.headers['x-user-id'] as string;
+    const roleId = req.headers['x-role-id'] as string;
+
+    if (!userId || !roleId) {
+      return { authorized: false };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { user_id: Number(userId) },
+      include: { role: true },
+    });
+
+    if (!user || !user.role) {
+      return { authorized: false };
+    }
+
+    const allowedRoles = ['super_admin', 'sub_admin'];
+    const authorized = allowedRoles.includes(user.role.role_name);
+
+    return {
+      authorized,
+      role: user.role.role_name,
+      userId: user.user_id,
+    };
+  } catch (error) {
+    console.error('Error checking permissions:', error);
+    return { authorized: false };
+  }
+}
+
 // Validation schemas
 const createRoleSchema = z.object({
   role_name: z.string().min(1, 'Role name is required').max(50),
@@ -126,6 +162,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // PUT - Update role
   if (req.method === 'PUT') {
     try {
+      // Check permissions
+      const permission = await hasEditPermission(req);
+      if (!permission.authorized) {
+        return apiResponse(res, 403, {
+          status: 'error',
+          message: 'Forbidden: You do not have permission to edit roles',
+        });
+      }
+
       const { role_id, ...updateData } = req.body;
 
       // Validation
@@ -195,7 +240,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // DELETE - Soft delete role
   if (req.method === 'DELETE') {
     try {
+      // Check permissions
+      const permission = await hasEditPermission(req);
+      if (!permission.authorized) {
+        return apiResponse(res, 403, {
+          status: 'error',
+          message: 'Forbidden: You do not have permission to delete roles',
+        });
+      }
+
       const { role_id } = req.query;
+      const { deleteType } = req.body; // Get deleteType from body ('soft' or 'hard')
 
       if (!role_id) {
         return apiResponse(res, 400, {
