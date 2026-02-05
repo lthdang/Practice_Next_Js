@@ -1,10 +1,29 @@
 import Head from "next/head";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import UserMenu from "./UserMenu";
 
 const name = "Hải Đăng";
 export const siteTitle = "Next.js Sample Website";
 
 export default function Layout({ children, home }) {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        setIsLoggedIn(true);
+        // Check if user is super_admin (role_id === 1)
+        setIsSuperAdmin(userData.role_id === 1);
+      } catch (error) {
+        console.error("Failed to parse user data:", error);
+      }
+    }
+  }, []);
   return (
     <div className="bg-red-50">
       <Head>
@@ -73,20 +92,26 @@ export default function Layout({ children, home }) {
               </Link>
             </nav>
 
-            {/* Auth Buttons */}
+            {/* Auth Section - Show UserMenu if logged in (non-super_admin), else show Login/Register buttons */}
             <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="text-gray-700 hover:text-purple-600 font-medium transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                href="/signup"
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 hover:transform hover:scale-105 shadow-md"
-              >
-                Sign Up
-              </Link>
+              {isLoggedIn && !isSuperAdmin ? (
+                <UserMenu />
+              ) : !isLoggedIn ? (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-gray-700 hover:text-purple-600 font-medium transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 hover:transform hover:scale-105 shadow-md"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              ) : null}
             </div>
 
             {/* Mobile Menu Button */}

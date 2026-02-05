@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { LoginResponse } from '../components/home/interface';
+import { LoginResponse } from '../components/home/interface/user';
 export default function Login() {
   const [formData, setFormData] = useState({
     username: '',
@@ -44,7 +44,7 @@ export default function Login() {
         if (data.data.user.role_id === 1) {
           router.push('/admin');
         } else {
-          router.push('/customer');
+          router.push('/');
         }
       } else {
         setError(data.message || 'Login failed');

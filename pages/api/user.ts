@@ -1,0 +1,381 @@
+import { NextApiRequest, NextApiResponse } from 'next';
+import { PrismaClient } from '@prisma/client';
+import { CreateUserSchema, UpdateUserSchema } from '../../types/user';
+import bcrypt from 'bcryptjs';
+import { apiResponse } from '../../utils/apiResponse';
+import { z } from 'zod';
+
+const prisma = new PrismaClient();
+const SALT_ROUNDS = 10;
+
+const DeleteUserSchema = z.object({
+  user_id: z.number().int().positive('User ID must be a positive number'),
+  deleteType: z.enum(['soft', 'hard']),
+});
+
+// Helper function to check if user has permission (super_admin or sub_admin)
+async function hasEditPermission(
+  req: NextApiRequest
+): Promise<{ authorized: boolean; role?: string; userId?: number }> {
+  try {
+    // Note: Next.js converts header names to lowercase
+    const userId = req.headers['x-user-id'] as string;
+    const roleId = req.headers['x-role-id'] as string;
+
+    if (!userId || !roleId) {
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { user_id: Number(userId) },
+      include: { role: true },
+    });
+
+    if (!user || !user.role) {
+      return { authorized: false };
+    }
+
+    const allowedRoles = ['super_admin', 'sub_admin'];
+    const authorized = allowedRoles.includes(user.role.role_name);
+
+    return {
+      authorized,
+      role: user.role.role_name,
+      userId: user.user_id,
+    };
+  } catch (error) {
+    console.error('Error checking permissions:', error);
+    return { authorized: false };
+  }
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // GET - Get all users
+  if (req.method === 'GET') {
+    try {
+      const users = await prisma.user.findMany({
+        select: {
+          user_id: true,
+          username: true,
+          email: true,
+          full_name: true,
+          role_id: true,
+          status: true,
+          created_at: true,
+          updated_at: true,
+          role: {
+            select: {
+              role_id: true,
+              role_name: true,
+            },
+          },
+        },
+        orderBy: [
+          {
+            status: 'desc', // Active users first
+          },
+          {
+            created_at: 'desc', // Then by creation date
+          },
+        ],
+      });
+
+      return apiResponse(res, 200, {
+        status: 'success',
+        message: 'Users retrieved successfully',
+        data: users,
+      });
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return apiResponse(res, 500, {
+        status: 'error',
+        message: 'Internal Server Error',
+      });
+    }
+  }
+
+  // POST - Create new user
+  if (req.method === 'POST') {
+    try {
+      const validationResult = CreateUserSchema.safeParse(req.body);
+
+      // Validation
+      if (!validationResult.success) {
+        return apiResponse(res, 400, {
+          status: 'error',
+          message: 'Validation failed',
+          error: validationResult.error.issues,
+        });
+      }
+      const { password, ...userData } = validationResult.data;
+      if (!password) {
+        return apiResponse(res, 400, {
+          status: 'error',
+          message: 'Password is required',
+        });
+      }
+      // Check if username or email already exists
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [{ username: userData.username }, { email: userData.email }],
+        },
+      });
+
+      if (existingUser) {
+        return apiResponse(res, 409, {
+          status: 'error',
+          message: 'Username or email already exists',
+        });
+      }
+
+      // Hash password
+      let password_hash: string;
+      try {
+        password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+      } catch (error) {
+        console.error('Error hashing password:', error);
+        return apiResponse(res, 500, {
+          status: 'error',
+          message: 'Error processing password',
+        });
+      }
+
+      // Create user
+      const newUser = await prisma.user.create({
+        data: {
+          ...userData,
+          password_hash,
+          status: true, // Set default status to true for new users
+        },
+        select: {
+          user_id: true,
+          username: true,
+          email: true,
+          full_name: true,
+          role_id: true,
+          status: true,
+          created_at: true,
+          role: {
+            select: {
+              role_name: true,
+            },
+          },
+        },
+      });
+
+      return apiResponse(res, 201, {
+        status: 'success',
+        message: 'User created successfully',
+        data: newUser,
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+      return apiResponse(res, 500, {
+        status: 'error',
+        message: 'Internal Server Error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  // PUT - Update user
+  if (req.method === 'PUT') {
+    try {
+      // Check permissions
+      const permission = await hasEditPermission(req);
+      if (!permission.authorized) {
+        return apiResponse(res, 403, {
+          status: 'error',
+          message: 'Forbidden: You do not have permission to edit users',
+        });
+      }
+
+      const validationResult = UpdateUserSchema.safeParse(req.body);
+
+      // Validation
+      if (!validationResult.success) {
+        return apiResponse(res, 400, {
+          status: 'error',
+          message: 'Validation failed',
+          error: validationResult.error.issues,
+        });
+      }
+
+      const { user_id, password, status, ...updateDataUpdate } = validationResult.data;
+
+      // Check if user exists
+      const existingUser = await prisma.user.findUnique({
+        where: { user_id },
+      });
+
+      if (!existingUser) {
+        return apiResponse(res, 404, {
+          status: 'error',
+          message: 'User not found',
+        });
+      }
+
+      // Check for duplicate username/email (excluding current user)
+      if (updateDataUpdate.username || updateDataUpdate.email) {
+        const duplicateUser = await prisma.user.findFirst({
+          where: {
+            AND: [
+              { user_id: { not: user_id } },
+              {
+                OR: [
+                  ...(updateDataUpdate.username ? [{ username: updateDataUpdate.username }] : []),
+                  ...(updateDataUpdate.email ? [{ email: updateDataUpdate.email }] : []),
+                ],
+              },
+            ],
+          },
+        });
+
+        if (duplicateUser) {
+          return apiResponse(res, 409, {
+            status: 'error',
+            message: 'Username or email already exists',
+          });
+        }
+      }
+
+      // Prepare update data
+      const updateData = {
+        ...updateDataUpdate,
+        status: typeof status === 'boolean' ? status : undefined,
+      };
+
+      // Hash new password if provided
+      if (password) {
+        updateData['password_hash'] = await bcrypt.hash(password, SALT_ROUNDS);
+      }
+
+      // Update user
+      const updatedUser = await prisma.user.update({
+        where: { user_id },
+        data: updateData,
+        select: {
+          user_id: true,
+          username: true,
+          email: true,
+          full_name: true,
+          role_id: true,
+          status: true,
+          created_at: true,
+          updated_at: true,
+          role: {
+            select: {
+              role_name: true,
+            },
+          },
+        },
+      });
+
+      return apiResponse(res, 200, {
+        status: 'success',
+        message: 'User updated successfully',
+        data: updatedUser,
+      });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return apiResponse(res, 500, {
+        status: 'error',
+        message: 'Internal Server Error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  // DELETE - Delete user
+  if (req.method === 'DELETE') {
+    try {
+      // Check permissions
+      const permission = await hasEditPermission(req);
+      if (!permission.authorized) {
+        return apiResponse(res, 403, {
+          status: 'error',
+          message: 'Forbidden: You do not have permission to delete users',
+        });
+      }
+
+      const validationResult = DeleteUserSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        return apiResponse(res, 400, {
+          status: 'error',
+          message: 'Validation failed',
+          error: validationResult.error.issues,
+        });
+      }
+
+      const { user_id, deleteType } = validationResult.data;
+
+      // Check if user exists
+      const existingUser = await prisma.user.findUnique({
+        where: { user_id },
+      });
+
+      if (!existingUser) {
+        return apiResponse(res, 404, {
+          status: 'error',
+          message: 'User not found',
+        });
+      }
+
+      if (deleteType === 'hard') {
+        // Check for associations before hard delete
+        const userAssociations = await prisma.user.findUnique({
+          where: { user_id },
+          select: {
+            _count: {
+              select: {
+                created_roles: true,
+                modified_roles: true,
+              },
+            },
+          },
+        });
+
+        if (
+          userAssociations?._count.created_roles > 0 ||
+          userAssociations?._count.modified_roles > 0
+        ) {
+          return apiResponse(res, 400, {
+            status: 'error',
+            message: 'Cannot permanently delete user with associated data',
+          });
+        }
+
+        // Perform hard delete
+        await prisma.user.delete({
+          where: { user_id },
+        });
+      } else {
+        // Perform soft delete
+        await prisma.user.update({
+          where: { user_id },
+          data: {
+            status: false,
+            deleted_at: new Date(),
+          },
+        });
+      }
+
+      return apiResponse(res, 200, {
+        status: 'success',
+        message: deleteType === 'hard' ? 'User permanently deleted' : 'User disabled successfully',
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      return apiResponse(res, 500, {
+        status: 'error',
+        message: 'Internal Server Error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  return apiResponse(res, 405, {
+    status: 'error',
+    message: 'Method Not Allowed',
+  });
+}

@@ -202,7 +202,7 @@ export const Content = () => {
           }}
         >
           <AppBarContent
-            data={menuItems}
+            menuItems={menuItems}
             user={user}
             activeSection={activeSection}
             handleDrawerToggle={handleDrawerToggle}
