@@ -46,19 +46,20 @@ model User {
 }
 
 model Course {
-  course_id     Int          @id @default(autoincrement())
-  title         String       @db.VarChar(255)
-  language      String       @db.VarChar(50)
-  price         Decimal      @db.Decimal(10, 2)
-  description   String?      @db.VarChar(1000)
-  thumbnail_url String?      @db.VarChar(255)
-  created_by_id Int
-  created_at    DateTime     @default(now())
-  updated_at    DateTime     @updatedAt
-  deleted_at    DateTime?
-  created_by    User         @relation("CreatedCourses", fields: [created_by_id], references: [user_id])
-  enrollments   Enrollment[]
-  lessons       Lesson[]
+  course_id          Int                 @id @default(autoincrement())
+  title              String              @db.VarChar(255)
+  language           String              @db.VarChar(50)
+  price              Decimal             @db.Decimal(10, 2)
+  description        String?             @db.VarChar(1000)
+  thumbnail_url      String?             @db.VarChar(255)
+  created_by_id      Int
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @updatedAt
+  deleted_at         DateTime?
+  created_by         User                @relation("CreatedCourses", fields: [created_by_id], references: [user_id])
+  enrollments        Enrollment[]
+  lessons            Lesson[]
+  student_enrollments StudentEnrollment[] @relation("StudentEnrollments")
 }
 
 model Lesson {
@@ -138,4 +139,30 @@ model Comment {
   parent_comment    Comment?  @relation("CommentReplies", fields: [parent_comment_id], references: [comment_id], onDelete: NoAction, onUpdate: NoAction)
   replies           Comment[] @relation("CommentReplies")
   user              User      @relation(fields: [user_id], references: [user_id])
+}
+
+model Student {
+  student_id      Int                 @id @default(autoincrement())
+  full_name       String              @db.VarChar(255)
+  email           String              @unique @db.VarChar(255)
+  address         String?             @db.VarChar(500)
+  date_of_birth   DateTime?
+  avatar          String?             @db.VarChar(255)
+  status          Boolean             @default(true)
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+  enrollments     StudentEnrollment[]
+
+  @@index([email])
+}
+
+model StudentEnrollment {
+  enrollment_id   Int      @id @default(autoincrement())
+  student_id      Int
+  course_id       Int
+  enrollment_date DateTime @default(now())
+  student         Student  @relation(fields: [student_id], references: [student_id])
+  course          Course   @relation("StudentEnrollments", fields: [course_id], references: [course_id])
+
+  @@unique([student_id, course_id])
 }
