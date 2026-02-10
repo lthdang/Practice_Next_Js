@@ -1,4 +1,4 @@
-import { Add, Delete, Edit } from '@mui/icons-material';
+import { Add, Delete, Edit, X } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -186,13 +186,11 @@ export const RoleManagement = () => {
     }
 
     try {
-      const response = await fetch(
-        `/api/role?role_id=${selectedRole.role_id}&deleteType=${deleteType}`,
-        {
-          method: 'DELETE',
-          headers: getAuthHeaders(),
-        }
-      );
+      const response = await fetch(`/api/role`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ role_id: selectedRole.role_id, deleteType }),
+      });
 
       const result = await response.json();
 

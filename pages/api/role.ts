@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { apiResponse } from '../../utils/apiResponse';
-import { z } from 'zod';
+import { CreateRoleSchema, UpdateRoleSchema, DeleteRoleSchema } from '../../types/role';
 const prisma = new PrismaClient();
 
 // Helper function to check if user has permission (super_admin or sub_admin)
@@ -26,8 +26,8 @@ async function hasEditPermission(
       return { authorized: false };
     }
 
-    const allowedRoles = ['super_admin', 'sub_admin'];
-    const authorized = allowedRoles.includes(user.role.role_name);
+    const allowedRoles = ['SUPER_ADMIN', 'SUB_ADMIN'];
+    const authorized = allowedRoles.includes(user.role.role_name.toLocaleUpperCase());
 
     return {
       authorized,
@@ -39,13 +39,6 @@ async function hasEditPermission(
     return { authorized: false };
   }
 }
-
-// Validation schemas
-const createRoleSchema = z.object({
-  role_name: z.string().min(1, 'Role name is required').max(50),
-  description: z.string().optional(),
-  status: z.boolean().default(true),
-});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // GET - Get all roles or get by id
@@ -108,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     try {
       // Validate request body against schema
-      const validationResult = createRoleSchema.safeParse(req.body);
+      const validationResult = CreateRoleSchema.safeParse(req.body);
 
       if (!validationResult.success) {
         return apiResponse(res, 400, {
@@ -170,17 +163,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           message: 'Forbidden: You do not have permission to edit roles',
         });
       }
-
-      const { role_id, ...updateData } = req.body;
+      const validationResult = UpdateRoleSchema.safeParse(req.body);
 
       // Validation
-      if (!role_id) {
+      if (!validationResult.success) {
         return apiResponse(res, 400, {
           status: 'error',
           message: 'role_id is required for update',
         });
       }
 
+      const { role_id, ...updateData } = validationResult.data;
       // Check if role exists
       const existingRole = await prisma.role.findUnique({
         where: { role_id: Number(role_id) },
@@ -249,15 +242,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const { role_id } = req.query;
-      const { deleteType } = req.body; // Get deleteType from body ('soft' or 'hard')
-
-      if (!role_id) {
+      const validationResult = DeleteRoleSchema.safeParse(req.body);
+      // Validation
+      if (!validationResult.success) {
         return apiResponse(res, 400, {
           status: 'error',
-          message: 'role_id is required in query parameters',
+          message: 'Validation failed',
+          error: validationResult.error.issues,
         });
       }
+
+      const { role_id, deleteType } = validationResult.data;
 
       // Check if role exists
       const existingRole = await prisma.role.findUnique({
@@ -284,6 +279,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Perform delete
+      if (deleteType === 'soft') {
+        // Soft delete - set status to false
+        await prisma.role.update({
+          where: { role_id: Number(role_id) },
+          data: { status: false },
+        });
+
+        return apiResponse(res, 200, {
+          status: 'success',
+          message: 'Role soft deleted successfully',
+        });
+      }
       await prisma.role.delete({
         where: { role_id: Number(role_id) },
       });
