@@ -34,8 +34,8 @@ async function hasEditPermission(
       return { authorized: false };
     }
 
-    const allowedRoles = ['super_admin', 'sub_admin'];
-    const authorized = allowedRoles.includes(user.role.role_name);
+    const allowedRoles = ['SUPER_ADMIN', 'SUB_ADMIN'];
+    const authorized = allowedRoles.includes(user.role.role_name.toUpperCase());
 
     return {
       authorized,
