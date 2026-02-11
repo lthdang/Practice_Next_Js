@@ -193,7 +193,7 @@ export default function Account() {
                   sx={{ flex: '1 1 45%' }}
                   label="Username"
                   value={user.username}
-                  disabled
+                  disabled={!editMode}
                   variant="outlined"
                   helperText="Username cannot be changed"
                 />
@@ -204,7 +204,7 @@ export default function Account() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                disabled={!editMode}
+                disabled
                 variant="outlined"
                 type="email"
               />
